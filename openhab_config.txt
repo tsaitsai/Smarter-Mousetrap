@@ -1,0 +1,69 @@
+
+
+
+//--------------------- items --------------
+Switch itm_mousetrap_vacation "Vacation Mode" {mqtt=">[mymosquitto:9999:command:ON:1],>[mymosquitto:9998:command:OFF:0]"}
+
+//--basement mouse trap
+Switch itm_mousetrap_basement_trap_sta "Basement Trap Status" <mymouse>
+DateTime itm_mousetrap_basement_time "Trap Time [%1$tA, %1$tm/%1$td, %1$tI:%1$tM %1$tp]"
+DateTime itm_mousetrap_heartbeat "Heartbeat Time [%1$tA, %1$tm/%1$td, %1$tI:%1$tM %1$tp]"
+Number itm_mousetrap_basement_temp "Temp [%.1f °F]" <temperature> (All) {mqtt="<[mymosquitto:mouse_basement_temp:state:default]"}
+Switch itm_mousetrap_basement_be_lonely "Lonely Mouse Mode"  {mqtt=">[mymosquitto:9996:command:ON:1],>[mymosquitto:9995:command:OFF:0]"}
+Number itm_mousetrap_basement_trap_mqtt "trap mqtt" (ALL) {mqtt="<[mymosquitto:mouse_basement_trap_mouse:state:default]"}
+Switch itm_mouse_basement_man_rst_mqtt "Mouse Basement mqtt ahhh" <blank> {mqtt=">[mymosquitto:9997:command:ON:1],>[mymosquitto:9997:command:OFF:0]"}
+
+
+
+//-------------------- sitemap ---------------
+		Text label="Mouse Traps" icon="firstfloor" {
+			Frame label=""
+			{
+				Switch item=itm_mousetrap_vacation
+			}
+			
+			Frame label="Basement Mouse Traps"
+			{
+                Switch item=itm_mousetrap_basement_trap_sta mappings=[OFF="Reset"]
+                Text item=itm_mousetrap_basement_time
+                Text item=itm_mousetrap_basement_temp
+                Switch item=itm_mousetrap_basement_be_lonely  
+            } //Basement Mouse Traps
+      }//end frame
+
+
+//---------------------- rules -----------------
+
+/* ------------- Mouse Trap ------------------------- */
+rule "Mouse Trap Basement Mouse Detected"
+	when
+		Item itm_mousetrap_basement_trap_mqtt received update
+	then
+		if (itm_mousetrap_basement_trap_mqtt.state == 1)
+		{
+			sendCommand(itm_mousetrap_basement_trap_sta, ON)
+			postUpdate(itm_mousetrap_basement_time, new DateTimeType())
+			sendMail("myemailaddress@gmail.com", "subject mouse trap" , "a mouse in trap!")
+			say("mouse in trap!")
+		}
+		else	//reset
+		{
+			sendCommand(itm_mousetrap_basement_trap_sta, OFF)
+		}
+end //Mouse Trap Basement Mouse Detected
+
+
+rule "Mouse Trap Basement Reset"
+	when
+		Item itm_mousetrap_basement_trap_sta received update
+	
+	then
+		if (itm_mousetrap_basement_trap_sta.state == OFF)
+		{
+			sendCommand(itm_mouse_basement_man_rst_mqtt, ON)
+		}
+end //mouse trap basement reset
+
+
+
+
